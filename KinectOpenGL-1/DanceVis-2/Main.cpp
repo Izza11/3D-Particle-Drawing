@@ -70,7 +70,7 @@ GLuint cubemap_id = -1; //Texture id for cubemap
 
 						//Mesh files and IDs
 
-//Cube files and IDs
+						//Cube files and IDs
 static const std::string cube_vs("cube_vs.glsl");
 static const std::string cube_fs("cube_fs.glsl");
 GLuint cube_shader_program = -1;
@@ -200,7 +200,8 @@ void draw_cube(const glm::mat4& P, const glm::mat4& V)
 
 void DrawIndexedSkeletons(const glm::mat4& P, const glm::mat4& V)
 {
-	glLineWidth(5.0f);
+	//glLineWidth(5.0f);
+	glPointSize(5.0);
 	glUseProgram(skel_shader_program);
 	glm::mat4 PVM = P*V;
 
@@ -218,22 +219,16 @@ void DrawIndexedSkeletons(const glm::mat4& P, const glm::mat4& V)
 	glEnableVertexAttribArray(pos_loc);
 	glVertexAttribPointer(pos_loc, 3, GL_FLOAT, false, 0, BUFFER_OFFSET(0));
 	//glDrawElements(GL_POINTS, skelIndices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0));
-	glDrawArrays(GL_POINTS, 0, skelBuffer.size() * 3 * sizeof(float));
+	glDrawArrays(GL_POINTS, 0, skelBuffer.size()*3);
 
 	glDisableVertexAttribArray(pos_loc);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
-	//glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
 }
 
 // glut display callback function.
 // This function gets called every time the scene gets redisplayed 
 void display()
 {
-	static float frame = 0.0f;
-	static int frame_id = 0;
-	frame += 1.0f / 30.0f;
-	float scale = 1.0f;
-	frame_id++;
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Clear the back buffer
 
@@ -246,17 +241,11 @@ void display()
 		glBindVertexArray(0);
 	}
 
-	
+
 	if (bodyTracked)
 	{
-		//copy next frame into skelBuffer
-		std::rotate(skelBuffer.begin(), skelBuffer.begin() + skelBuffer.size() - JointType_Count, skelBuffer.end());
-
+		
 		glm::mat4 M = glm::scale(glm::vec3(1.0f));
-
-		float s = 1.1f;
-		glm::mat4 T0 = glm::translate(-KinectCameraSpacePositionToglm(joints[JointType_SpineMid].Position));
-		glm::mat4 T1 = glm::translate(KinectCameraSpacePositionToglm(joints[JointType_SpineMid].Position));
 
 		for (int i = 0; i<JointType_Count; i++)
 		{
@@ -268,19 +257,16 @@ void display()
 		glBindBuffer(GL_ARRAY_BUFFER, SkelVertsVBO);
 		glBufferSubData(GL_ARRAY_BUFFER, 0, skelBuffer.size() * 3 * sizeof(float), skelBuffer.data());
 
-		//glBindBuffer(GL_ARRAY_BUFFER, SkelNormalsVBO);
-		//glBufferSubData(GL_ARRAY_BUFFER, 0, skelNormal.size()*3*sizeof(float), skelNormal.data());
-
 		glError();
 	}
 
 	const bool drawSkeletons = true;
-	
+
 	if (drawSkeletons == true)
 	{
 		DrawIndexedSkeletons(P, V);
 	}
-	
+
 	glError();
 	//glUseProgram(0);
 	draw_gui();
@@ -299,8 +285,8 @@ void idle()
 	int time_loc = glGetUniformLocation(cube_shader_program, "time");
 	if (time_loc != -1)
 	{
-		//double check that you are using glUniform1f
-		glUniform1f(time_loc, time_sec);
+	//double check that you are using glUniform1f
+	glUniform1f(time_loc, time_sec);
 	}
 
 	glUseProgram(cube_shader_program);
@@ -331,12 +317,12 @@ void initOpenGl()
 	cubemap_id = LoadCube(cube_name);
 	cube_shader_program = InitShader(cube_vs.c_str(), cube_fs.c_str());
 	cube_vao = create_cube_vao();
-	
+
 	//////////////////////////////////////////////////////
-	skelBuffer.resize(nFrames*JointType_Count);
+	skelBuffer.resize(JointType_Count);   //25
 	skelNormal.resize(skelBuffer.size());
 
-	skelIndices.resize(nFrames * 40);
+	skelIndices.resize(40);
 
 	int max_units;
 	glGetIntegerv(GL_MAX_TEXTURE_IMAGE_UNITS, &max_units);
@@ -347,13 +333,12 @@ void initOpenGl()
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
 	int p = 0;
-	for (int f = 0; f<nFrames; f++)
-	{
+
 		for (int i = 0; i<40; i++)
 		{
-			skelIndices[p++] = skel[i] + JointType_Count*f;
+			skelIndices[p++] = skel[i];
+			std::cout << p << std::endl;
 		}
-	}
 
 	glGenBuffers(1, &SkelNormalsVBO);
 	glBindBuffer(GL_ARRAY_BUFFER, SkelNormalsVBO);
@@ -372,9 +357,9 @@ void initOpenGl()
 	glMatrixMode(GL_MODELVIEW);
 	glLoadIdentity();
 	gluLookAt(
-		0.0, 0.0, 0.0,
-		0.0, 0.0, 5.0,
-		0.0, 1.0, 0.0
+	0.0, 0.0, 0.0,
+	0.0, 0.0, 5.0,
+	0.0, 1.0, 0.0
 	); */
 	skel_shader_program = InitShader(skel_vertex_shader.c_str(), skel_fragment_shader.c_str());
 	glError();
@@ -438,7 +423,7 @@ int main(int argc, char **argv)
 
 	/////////////////////////////////////////////////////
 	glewInit();
-	
+
 	//Register callback functions with glut. 
 	glutDisplayFunc(display);
 	glutKeyboardFunc(keyboard);
@@ -452,7 +437,7 @@ int main(int argc, char **argv)
 	glutReshapeFunc(reshape);
 
 	initOpenGl();
-						   //Enter the glut event loop.
+	//Enter the glut event loop.
 	glutMainLoop();
 	glutDestroyWindow(win);
 	return 0;

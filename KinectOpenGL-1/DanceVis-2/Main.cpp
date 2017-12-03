@@ -61,6 +61,7 @@ JointType_SpineBase, JointType_HipRight, JointType_HipRight, JointType_KneeRight
 
 static const std::string skel_vertex_shader("skel_vs.glsl");
 static const std::string skel_fragment_shader("skel_fs.glsl");
+static const std::string skel_geometry_shader("skel_gs.glsl");
 GLuint skel_shader_program = -1;
 
 //Texture files and IDs
@@ -162,8 +163,8 @@ void draw_gui()
 
 	ImGui::Begin("VAO Demo", nullptr, ImGuiWindowFlags_AlwaysAutoResize);
 	ImGui::Checkbox("Draw cube", &cube_enabled); ImGui::SameLine();
-	ImGui::SliderFloat("View angle", &camangle, -180.0f, +180.0f);
-	ImGui::SliderFloat3("Cam Pos", &campos[0], -20.0f, +20.0f);
+	ImGui::SliderFloat("View angle", &camangle, 0.0f, 0.0f);
+	ImGui::SliderFloat3("Cam Pos", &campos[0], 0.0f, 0.0f);
 
 	ImGui::End();
 
@@ -230,7 +231,7 @@ void display()
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Clear the back buffer
 
-	glm::mat4 V = glm::lookAt(campos, glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f))*glm::rotate(camangle, glm::vec3(0.0f, -1.0f, 0.0f));
+	glm::mat4 V = glm::lookAt(glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, -1.0f, 0.0f));
 	glm::mat4 P = glm::perspective(80.0f, aspect, 0.1f, 100.0f); //not affine
 
 	if (cube_enabled)
@@ -243,7 +244,7 @@ void display()
 	if (bodyTracked)
 	{
 		
-		glm::mat4 M = glm::scale(glm::vec3(1.0f));
+		glm::mat4 M = glm::scale(glm::vec3(3.0f));
 
 		for (int i = 0; i<JointType_Count; i++)
 		{
@@ -316,7 +317,7 @@ void initOpenGl()
 	glBufferData(GL_ARRAY_BUFFER, skelBuffer.size() * 3 * sizeof(float), skelBuffer.data(), GL_STREAM_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	skel_shader_program = InitShader(skel_vertex_shader.c_str(), skel_fragment_shader.c_str());
+	skel_shader_program = InitShader(skel_vertex_shader.c_str(), skel_geometry_shader.c_str(), skel_fragment_shader.c_str());
 	glError();
 
 }

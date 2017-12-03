@@ -60,6 +60,7 @@
     <None Include="..\..\VAO Demo - Solution\cube_vs.glsl" />
     <None Include="skel_fs.glsl" />
     <None Include="skel_vs.glsl" />
+    <None Include="skel_gs.glsl" />
   </ItemGroup>
   <ItemGroup>
     <Filter Include="imgui">

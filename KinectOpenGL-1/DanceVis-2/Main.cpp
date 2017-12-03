@@ -212,13 +212,11 @@ void DrawIndexedSkeletons(const glm::mat4& P, const glm::mat4& V)
 	}
 
 	glBindBuffer(GL_ARRAY_BUFFER, SkelVertsVBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SkelIndex);
 
 	// get a reference to an attrib variable name in a shader
 	GLint pos_loc = glGetAttribLocation(skel_shader_program, "pos_attrib");
 	glEnableVertexAttribArray(pos_loc);
 	glVertexAttribPointer(pos_loc, 3, GL_FLOAT, false, 0, BUFFER_OFFSET(0));
-	//glDrawElements(GL_POINTS, skelIndices.size(), GL_UNSIGNED_INT, BUFFER_OFFSET(0));
 	glDrawArrays(GL_POINTS, 0, skelBuffer.size()*3);
 
 	glDisableVertexAttribArray(pos_loc);
@@ -268,7 +266,6 @@ void display()
 	}
 
 	glError();
-	//glUseProgram(0);
 	draw_gui();
 	glutSwapBuffers();
 }
@@ -280,18 +277,6 @@ void idle()
 
 	const int time_ms = glutGet(GLUT_ELAPSED_TIME);
 	float time_sec = 0.001f*time_ms;
-
-	/*glUseProgram(cube_shader_program);
-	int time_loc = glGetUniformLocation(cube_shader_program, "time");
-	if (time_loc != -1)
-	{
-	//double check that you are using glUniform1f
-	glUniform1f(time_loc, time_sec);
-	}
-
-	glUseProgram(cube_shader_program);
-
-	*/
 
 }
 
@@ -305,7 +290,6 @@ void printGlInfo()
 
 void initOpenGl()
 {
-	//glewInit();
 
 	ImGui_ImplGlut_Init();
 
@@ -332,35 +316,6 @@ void initOpenGl()
 	glBufferData(GL_ARRAY_BUFFER, skelBuffer.size() * 3 * sizeof(float), skelBuffer.data(), GL_STREAM_DRAW);
 	glBindBuffer(GL_ARRAY_BUFFER, 0);
 
-	int p = 0;
-
-		for (int i = 0; i<40; i++)
-		{
-			skelIndices[p++] = skel[i];
-			std::cout << p << std::endl;
-		}
-
-	glGenBuffers(1, &SkelNormalsVBO);
-	glBindBuffer(GL_ARRAY_BUFFER, SkelNormalsVBO);
-	glBufferData(GL_ARRAY_BUFFER, skelNormal.size() * 3 * sizeof(float), skelNormal.data(), GL_STREAM_DRAW);
-	glBindBuffer(GL_ARRAY_BUFFER, 0);
-
-
-	glGenBuffers(1, &SkelIndex);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, SkelIndex);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, skelIndices.size() * sizeof(unsigned int), skelIndices.data(), GL_STATIC_DRAW);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, 0);
-	/////////////////////////////////////////////////////////
-
-	/*glClearColor(0.0f, 0.0f, 0.0f, 0.0f);
-	glClearDepth(1.0f);
-	glMatrixMode(GL_MODELVIEW);
-	glLoadIdentity();
-	gluLookAt(
-	0.0, 0.0, 0.0,
-	0.0, 0.0, 5.0,
-	0.0, 1.0, 0.0
-	); */
 	skel_shader_program = InitShader(skel_vertex_shader.c_str(), skel_fragment_shader.c_str());
 	glError();
 

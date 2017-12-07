@@ -1,0 +1,4 @@
+﻿  Main.cpp
+d:\cgt520\kinectopenglsamples - working-3\dancevis\main.cpp(401): warning C4101: 'st': unreferenced local variable
+  DanceVis.vcxproj -> D:\CGT520\KinectOpenGLSamples - Working-3\Debug\DanceVis.exe
+  DanceVis.vcxproj -> D:\CGT520\KinectOpenGLSamples - Working-3\Debug\DanceVis.pdb (Full PDB)

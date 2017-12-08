@@ -17,6 +17,7 @@
 #include <vector>
 #include <iostream>
 #include "Cube.h"
+#include <time.h>
 
 #if defined WIN32 || _WIN32
 #include <Kinect.h>
@@ -36,39 +37,29 @@ static IKinectSensor * sensor = NULL;
 static BOOLEAN bodyTracked = false;
 static Joint joints[JointType_Count];
 
-
+float time_sec;
 float particles[3*1000];
-std::vector<glm::vec3> startTime;
+float startTime[1000];
+glm::vec3 RhHandpos;
+glm::vec3 rElbowpos;
+glm::vec3 handTranslation;
+glm::mat4 rotatePoints;
 
 GLuint particlesVAO[2];
 GLuint feedback[2]; // Transform feedback objects
 GLuint partPosBuf[2];
-GLuint partTimeBuf[2];
-int drawBuf = 0;
+GLuint initpartPosBuf[2];
 
-// VBOs
-GLuint SkelVertsVBO = -1;
-GLuint SkelNormalsVBO = -1;
-GLuint billboard_vertex_buffer = -1;
-GLuint particles_position_buffer = -1;
-GLuint particles_color_buffer = -1;
+
+int drawBuf = 0;
 
 float camangle = 0.0f;
 glm::vec3 campos(0.0f, 1.0f, 2.0f);
 float aspect = 1.0f;
 
-glm::mat4 M = glm::scale(glm::vec3(1.0f));
+glm::mat4 M = glm::scale(glm::vec3(0.5f));
 glm::mat4 V = glm::lookAt(glm::vec3(0.0f, 0.0f, 1.0f), glm::vec3(0.0f, 0.0f, 0.0f), glm::vec3(0.0f, -1.0f, 0.0f));
 glm::mat4 P = glm::perspective(80.0f, aspect, 0.1f, 100.0f); //not affine
-
-float cam_height = 0.0f;
-const int nBones = 20;
-static const GLfloat g_vertex_buffer_data[] = {
-	-0.5f, -0.5f, 0.0f,
-	0.5f, -0.5f, 0.0f,
-	-0.5f, 0.5f, 0.0f,
-	0.5f, 0.5f, 0.0f,
-};
 
 static const std::string skel_vertex_shader("skel_vs.glsl");
 static const std::string skel_fragment_shader("skel_fs.glsl");
@@ -91,6 +82,7 @@ bool cube_enabled = false;
 
 //Locations
 GLint part_pos_loc;
+GLint init_part_pos_loc;
 
 void glError()
 {
@@ -153,18 +145,10 @@ void getKinectData()
 	if (frame) frame->Release();
 }
 
-inline static void glFixedPipelineLine(const glm::vec3 & pointA, const glm::vec3 & pointB)
-{
-	glVertex3fv(glm::value_ptr(pointA)); glVertex3fv(glm::value_ptr(pointB));
-}
-
 inline static glm::vec3 KinectCameraSpacePositionToglm(const CameraSpacePoint & point)
 {
 	return glm::vec3(point.X, point.Y, point.Z);
 }
-
-
-
 
 void draw_gui()
 {
@@ -211,18 +195,10 @@ void draw_cube(const glm::mat4& P, const glm::mat4& V)
 void RenderPass1(GLuint functionLocation)
 {
 	//////////// Update pass ///////////////
-	glError();
 	glUniformSubroutinesuiv(GL_VERTEX_SHADER, 1, &functionLocation);
-	glError();
 
-	//glBindBuffer(GL_ARRAY_BUFFER, partPosBuf[1-drawBuf]);
-	//glBufferData(GL_TRANSFORM_FEEDBACK_BUFFER, sizeof(particles), NULL, GL_STATIC_READ);
-
-	glError();
 	glBindVertexArray(particlesVAO[1 - drawBuf]);
-	//glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, partPosBuf[1 - drawBuf]);
 	glBindBuffer(GL_TRANSFORM_FEEDBACK_BUFFER, partPosBuf[1 - drawBuf]);
-	//glBindBuffer(GL_ARRAY_BUFFER, partPosBuf[drawBuf]);
 
 	// Disable rendering
 	glEnable(GL_RASTERIZER_DISCARD);
@@ -231,12 +207,10 @@ void RenderPass1(GLuint functionLocation)
 	glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, feedback[drawBuf]);
 
 	// Draw points from input buffer with transform feedback
-	glBeginTransformFeedback(GL_POINTS);
-	
-	glDrawArrays(GL_POINTS, 0, 1000);
-	
+	glBeginTransformFeedback(GL_POINTS);	
+	glDrawArrays(GL_POINTS, 0, 1000);	
 	glEndTransformFeedback();
-	//glFlush();
+	
 	// Enable rendering
 	glDisable(GL_RASTERIZER_DISCARD);
 
@@ -254,30 +228,6 @@ void RenderPass2( GLuint functionLocation)
 	// Draw the sprites from the feedback buffer
 	glBindVertexArray(particlesVAO[drawBuf]);
 	glDrawArrays(GL_POINTS, 0, 1000);
-	/*
-	GLfloat feed[3000];
-	// Update vertices' position and velocity using transform feedback
-	glGetBufferSubData(GL_TRANSFORM_FEEDBACK_BUFFER, 0, sizeof(feed), feed);
-
-	for (int i = 0; i < 3000-3; i=i+3) {
-		particles[i] = feed[i];
-		particles[i + 1] = feed[i + 1];
-		particles[i + 2] = feed[i + 2];
-	}
-	*/
-
-	/*if (feed != NULL) {
-		for (int i = 0; i < 3000 - 3; i = i + 3) {
-			std::cout << particles[i] << std::endl;
-			std::cout << particles[i + 1] << std::endl;
-			std::cout << particles[i + 2] << std::endl;
-		}
-	} */
-	
-
-	// glBufferSubData() updates an existing buffer.
-	//glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(particles), particles);
-
 	
 }
 
@@ -285,9 +235,8 @@ void RenderPass2( GLuint functionLocation)
 
 void DrawIndexedSkeletons(const glm::mat4& P, const glm::mat4& V)
 {	
-	glError();
-	//glLineWidth(5.0f);
-	glPointSize(5.0);
+
+	glPointSize(1.0);
 	glUseProgram(skel_shader_program);
 	glm::mat4 PVM = P*V;
 
@@ -296,39 +245,32 @@ void DrawIndexedSkeletons(const glm::mat4& P, const glm::mat4& V)
 	{
 		glUniformMatrix4fv(PVM_loc, 1, false, glm::value_ptr(PVM));
 	}
-	//glError();
-	//glBindVertexArray(particlesVAO[drawBuf]);
-	//glError();
-	//glBindBuffer(GL_ARRAY_BUFFER, partPosBuf[drawBuf]);
-	//glBufferData(GL_ARRAY_BUFFER, sizeof(particles) * sizeof(float), particles, GL_STREAM_DRAW);
+	int rotP_loc = glGetUniformLocation(skel_shader_program, "rotatePoints");
+	if (rotP_loc != -1)
+	{
+		glUniformMatrix4fv(rotP_loc, 1, false, glm::value_ptr(rotatePoints));
+	}
 
-	//// get a reference to an attrib variable name in a shader
-	//part_pos_loc = glGetAttribLocation(skel_shader_program, "curpos");
-	//glEnableVertexAttribArray(part_pos_loc);
-	//glVertexAttribPointer(part_pos_loc, 3, GL_FLOAT, GL_FALSE, 0,NULL);
-	//glDrawArrays(GL_POINTS, 0, particles.size() * 3);
-
+	int RH_loc = glGetUniformLocation(skel_shader_program, "handTranslation");
+	if (RH_loc != -1)
+	{
+		glUniform3f(RH_loc, handTranslation[0], handTranslation[1], handTranslation[2]);
+	}
+	
+	
 	GLuint updateSub = glGetSubroutineIndex(skel_shader_program, GL_VERTEX_SHADER, "update");
 	GLuint renderSub = glGetSubroutineIndex(skel_shader_program, GL_VERTEX_SHADER, "render");
-	glError();
+	
 	RenderPass1(updateSub);
-	glError();
 	RenderPass2(renderSub);
+	
+	drawBuf = 1 - drawBuf; // Swap buffers
 
-	// Swap buffers
-	drawBuf = 1 - drawBuf;
-
-	glError();
 }
 
-
-// glut display callback function.
-// This function gets called every time the scene gets redisplayed 
 void display()
 {
-
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT); //Clear the back buffer
-
 	
 	if (cube_enabled)
 	{
@@ -336,21 +278,37 @@ void display()
 		//glBindVertexArray(0);
 	}
 
-
 	if (bodyTracked)
-	{
-	
-		glError();
+	{	
+		for (int i = 0; i<JointType_Count; i++)
+		{			
+			if (joints[i].JointType == JointType_HandRight) {
+				glm::vec4 p = glm::vec4(KinectCameraSpacePositionToglm(joints[i].Position), 1.0f);
+				glm::vec4 p2 = p;
+				RhHandpos = glm::vec3(p2);
+			}
+			if (joints[i].JointType == JointType_ElbowRight) {
+				glm::vec4 p = glm::vec4(KinectCameraSpacePositionToglm(joints[i].Position), 1.0f);
+				glm::vec4 p2 = p;
+				rElbowpos = glm::vec3(p2);
+			}						
+		}
+
+		handTranslation = RhHandpos;
+		handTranslation[2] = 0.0;
+		glm::vec3 rEtorH = glm::normalize(RhHandpos - rElbowpos);
+		float angle = acos(glm::dot(glm::vec3(0.0, -1.0, 0.0), rEtorH))*180*7/22;
+		rotatePoints = glm::rotate(angle/20, glm::vec3(0.0, 0.0, 1.0));
+		std::cout << angle << std::endl;
 	}
 
 	const bool drawSkeletons = true;
-
 	if (drawSkeletons == true)
 	{
 		DrawIndexedSkeletons(P, V);
 	}
 
-	glError();
+	//glError();
 	draw_gui();
 	glutSwapBuffers();
 }
@@ -361,7 +319,7 @@ void idle()
 	glutPostRedisplay();
 
 	const int time_ms = glutGet(GLUT_ELAPSED_TIME);
-	float time_sec = 0.001f*time_ms;
+	time_sec = 0.001f*time_ms;
 	int time_loc = glGetUniformLocation(skel_shader_program, "time");
 	if (time_loc != -1) {
 		glUniform1f(time_loc, time_sec);
@@ -374,6 +332,13 @@ void printGlInfo()
 	std::cout << "Renderer: " << glGetString(GL_RENDERER) << std::endl;
 	std::cout << "Version: " << glGetString(GL_VERSION) << std::endl;
 	std::cout << "GLSL Version: " << glGetString(GL_SHADING_LANGUAGE_VERSION) << std::endl;
+}
+
+float randFloat(float a, float b) {
+	float random = ((float)rand()) / (float)RAND_MAX;
+	float diff = b - a;
+	float r = random * diff;
+	return a + r;
 }
 
 void initOpenGl()
@@ -390,13 +355,17 @@ void initOpenGl()
 	cube_shader_program = InitShader(cube_vs.c_str(), cube_fs.c_str());
 	cube_vao = create_cube_vao(); */
 
-	//////////////////////////////////////////////////////
 	//fill particle array
-	float  i = -1.0f;
+	srand(time(0));
+	RhHandpos = glm::vec3(0.0, 0.0, 0.0);
+	rElbowpos = glm::vec3(0.0, 0.0, 0.0);
+
 	for (unsigned int k = 0; k < 3000-3; k=k+3) {
-		i += .04f;
-		particles[k] = i ;
-		particles[k + 1] = 0.0f;
+
+		float randX = glm::mix(RhHandpos[0] - 0.4f, RhHandpos[0] + 0.7f, randFloat(0.0, 1.0));
+		float randY = glm::mix(RhHandpos[1] - 0.3f, RhHandpos[1] + 0.2f, randFloat(0.0, 1.0));
+		particles[k] = randX;
+		particles[k + 1] = randY;
 		particles[k + 2] = 0.0f;
 	}
 
@@ -407,9 +376,8 @@ void initOpenGl()
 	skel_shader_program = InitShader(skel_vertex_shader.c_str(), skel_fragment_shader.c_str());
 	//Get Location
 	part_pos_loc = glGetAttribLocation(skel_shader_program, "curpos");
-	GLenum st;
-/////////////////////////////////////////////////////////////////////
-	/////////////////////////////////////////////////////////
+	init_part_pos_loc = glGetAttribLocation(skel_shader_program, "initpos");
+
 	///////////Create VAo and VBO HERE/////////////////
 
 	glGenVertexArrays(1, &particlesVAO[0]);
@@ -420,6 +388,13 @@ void initOpenGl()
 		glEnableVertexAttribArray(part_pos_loc);
 		glVertexAttribPointer(part_pos_loc, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
+		// initial positions of particles, they dont get updated inside the shader
+		glGenBuffers(1, &initpartPosBuf[0]);
+		glBindBuffer(GL_ARRAY_BUFFER, initpartPosBuf[0]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(particles), nullptr, GL_STREAM_DRAW);
+		glEnableVertexAttribArray(init_part_pos_loc);
+		glVertexAttribPointer(init_part_pos_loc, 3, GL_FLOAT, GL_FALSE, 0, NULL);
+
 	glGenVertexArrays(1, &particlesVAO[1]);
 	glBindVertexArray(particlesVAO[1]);
 		glGenBuffers(1, &partPosBuf[1]);
@@ -428,19 +403,26 @@ void initOpenGl()
 		glEnableVertexAttribArray(part_pos_loc);
 		glVertexAttribPointer(part_pos_loc, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
-		glError();
+		// initial positions of particles, they dont get updated inside the shader
+		glGenBuffers(1, &initpartPosBuf[1]);
+		glBindBuffer(GL_ARRAY_BUFFER, initpartPosBuf[1]);
+		glBufferData(GL_ARRAY_BUFFER, sizeof(particles), particles, GL_STREAM_DRAW);
+		glEnableVertexAttribArray(init_part_pos_loc);
+		glVertexAttribPointer(init_part_pos_loc, 3, GL_FLOAT, GL_FALSE, 0, NULL);
 
 	glBindVertexArray(0);
-
 	// Setup the feedback objects
 	glGenTransformFeedbacks(2, feedback);
+	
 	// Transform feedback 0
 	glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, feedback[0]);
 	glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, partPosBuf[0]);
+	glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 1, initpartPosBuf[0]);
 
 	// Transform feedback 1
 	glBindTransformFeedback(GL_TRANSFORM_FEEDBACK, feedback[1]);
 	glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 0, partPosBuf[1]);
+	glBindBufferBase(GL_TRANSFORM_FEEDBACK_BUFFER, 1, initpartPosBuf[1]);
 
 }
 
@@ -520,5 +502,3 @@ int main(int argc, char **argv)
 	glutDestroyWindow(win);
 	return 0;
 }
-
-// where is the glPosition in vertex shaders variable defined???

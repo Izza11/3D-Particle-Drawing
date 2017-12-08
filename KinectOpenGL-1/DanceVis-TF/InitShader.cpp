@@ -160,8 +160,8 @@ GLuint InitShader(const char* vShaderFile, const char* fShaderFile)
       glAttachShader( program, shader );
 	  if (i == 0) {    // if vertex shader
 					   //transform feedback
-		  const char * outputNames[] = { "outPosition" };
-		  glTransformFeedbackVaryings(program, 1, outputNames, GL_SEPARATE_ATTRIBS);
+		  const char * outputNames[] = { "outPosition" , "initOutPos" };
+		  glTransformFeedbackVaryings(program, 2, outputNames, GL_SEPARATE_ATTRIBS);
 	  }
    }
 

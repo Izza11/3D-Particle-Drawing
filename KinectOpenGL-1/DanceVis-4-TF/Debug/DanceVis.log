@@ -1,0 +1,12 @@
+﻿  Main.cpp
+d:\cgt520\kinectopenglsamples - working-4\dancevis\main.cpp(390): warning C4244: 'argument': conversion from 'time_t' to 'unsigned int', possible loss of data
+d:\cgt520\kinectopenglsamples - working-4\dancevis\main.cpp(428): warning C4244: 'argument': conversion from 'float' to 'GLsizeiptr', possible loss of data
+d:\cgt520\kinectopenglsamples - working-4\dancevis\main.cpp(435): warning C4244: 'argument': conversion from 'float' to 'GLsizeiptr', possible loss of data
+d:\cgt520\kinectopenglsamples - working-4\dancevis\main.cpp(442): warning C4244: 'argument': conversion from 'float' to 'GLsizeiptr', possible loss of data
+d:\cgt520\kinectopenglsamples - working-4\dancevis\main.cpp(449): warning C4244: 'argument': conversion from 'float' to 'GLsizeiptr', possible loss of data
+d:\cgt520\kinectopenglsamples - working-4\dancevis\main.cpp(458): warning C4244: 'argument': conversion from 'float' to 'GLsizeiptr', possible loss of data
+d:\cgt520\kinectopenglsamples - working-4\dancevis\main.cpp(464): warning C4244: 'argument': conversion from 'float' to 'GLsizeiptr', possible loss of data
+d:\cgt520\kinectopenglsamples - working-4\dancevis\main.cpp(470): warning C4244: 'argument': conversion from 'float' to 'GLsizeiptr', possible loss of data
+d:\cgt520\kinectopenglsamples - working-4\dancevis\main.cpp(476): warning C4244: 'argument': conversion from 'float' to 'GLsizeiptr', possible loss of data
+  DanceVis.vcxproj -> D:\CGT520\KinectOpenGLSamples - Working-4\Debug\DanceVis.exe
+  DanceVis.vcxproj -> D:\CGT520\KinectOpenGLSamples - Working-4\Debug\DanceVis.pdb (Full PDB)
